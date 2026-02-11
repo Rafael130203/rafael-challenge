@@ -1,0 +1,16 @@
+Uso de IA no desenvolvimento
+
+Durante o desenvolvimento deste projeto, utilizei IA generativa como ferramenta de apoio técnico, de forma semelhante ao uso de documentação, fóruns e materiais de referência.
+
+A IA foi utilizada principalmente para:
+
+- Esclarecer mensagens de erro e entender causas de falhas nos testes;
+- Sugerir estruturas iniciais de classes e organização de camadas (controller, service, repository);
+- Tirar dúvidas sobre anotações do Spring Boot e configuração de dependências;
+- Ajustar tipos de dados;
+- Entender boas práticas de injeção de dependência e testes unitários com mocks;
+- Revisar trechos de código e melhorar legibilidade;
+
+Todos os códigos gerados ou sugeridos foram analisados, adaptados e integrados manualmente por mim ao projeto, garantindo entendimento completo do funcionamento da aplicação.
+
+A lógica de negócio, decisões de modelagem e integração entre componentes foram conduzidas por mim com base nos requisitos do desafio.
