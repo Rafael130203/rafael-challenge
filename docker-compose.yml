@@ -1,26 +1,30 @@
-version: '3.8'
-
 services:
-
-  mongo:
-    image: mongo:6
-    container_name: mongo
-    ports:
-      - "27017:27017"
-
   marketplace:
     build: ./marketplace-api
-    container_name: marketplace
     ports:
       - "8080:8080"
     depends_on:
       - mongo
+      - receiver
+    networks:
+      - backend
 
   receiver:
     build: ./receiver-api
-    container_name: receiver
     ports:
       - "8081:8081"
     depends_on:
       - mongo
-      - marketplace
+    networks:
+      - backend
+
+  mongo:
+    image: mongo:6
+    ports:
+      - "27017:27017"
+    networks:
+      - backend
+
+networks:
+  backend:
+    driver: bridge

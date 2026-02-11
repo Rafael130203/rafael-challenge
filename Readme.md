@@ -1,40 +1,26 @@
-# 📦 Marketplace Webhook Challenge
+# 🛒 Marketplace Webhook Challenge
 
-Esse projeto simula a integração entre dois sistemas via **webhook**, bem parecido com o que acontece em marketplaces reais.
+Este projeto simula um **marketplace** que gerencia pedidos e dispara **webhooks** para sistemas externos quando eventos importantes acontecem (como criação e pagamento de pedidos).
 
-Temos duas APIs conversando entre si:
-
-- **Marketplace API** → onde os pedidos acontecem  
-- **Receiver API** → que recebe os eventos e guarda o histórico
-
-O fluxo principal é simples:
-
-> Um pedido é criado no Marketplace → Um evento é gerado → O Receiver recebe via webhook → O evento fica salvo para consulta
+Ele é composto por **dois serviços** independentes que se comunicam via HTTP.
 
 ---
 
-## 🧱 Arquitetura
+## 🧩 Arquitetura
 
-O projeto é dividido em dois serviços independentes:
+| Serviço | Porta | Função |
+|--------|------|--------|
+| **Marketplace API** | 8080 | Cria pedidos, altera status e envia eventos |
+| **Receiver API** | 8081 | Recebe webhooks e armazena os eventos |
+| **MongoDB** | 27017 | Banco de dados usado pelo Receiver |
 
-| Serviço | Porta | Responsabilidade |
-|--------|------|------------------|
-| **marketplace-api** | `8080` | Criar pedidos, atualizar status e disparar webhooks |
-| **receiver-api** | `8081` | Receber eventos e armazenar o histórico |
-| **MongoDB** | `27017` | Banco de dados usado pelos serviços |
+Fluxo geral:
 
-A comunicação entre eles é feita via **HTTP (REST)**.
+```
+Cliente → Marketplace → Webhook HTTP → Receiver → MongoDB
+```
 
----
-
-## ⚙️ Tecnologias utilizadas
-
-- Java 17  
-- Spring Boot  
-- Spring Web  
-- Spring Data MongoDB  
-- Docker + Docker Compose  
-- JUnit + Mockito (testes unitários)
+Quando um pedido muda de status, o Marketplace envia um **POST** para a URL cadastrada como webhook.
 
 ---
 
@@ -42,46 +28,37 @@ A comunicação entre eles é feita via **HTTP (REST)**.
 
 ### ✅ Pré-requisitos
 
-Você precisa ter instalado:
-
 - Docker  
-- Docker Compose (ou Docker com suporte ao comando `docker compose`)  
-
-> Não é obrigatório ter Java instalado se for rodar tudo via Docker.
+- Docker Compose (ou `docker compose`)
 
 ---
 
-### ▶️ Subindo tudo com Docker (recomendado)
+### ▶️ Subindo os serviços
 
-Na **raiz do projeto**:
+Na raiz do projeto:
 
 ```bash
 docker compose up --build
 ```
 
-Isso vai subir:
+Após subir:
 
-- Marketplace API → http://localhost:8080  
-- Receiver API → http://localhost:8081  
-- MongoDB  
-
----
-
-## 🧪 Fluxo completo de teste
-
-Aqui está o passo a passo para testar o fluxo inteiro de webhook.
+- Marketplace → http://localhost:8080  
+- Receiver → http://localhost:8081  
 
 ---
 
-### 1️⃣ Cadastrar um webhook no Marketplace
+## 🔔 Fluxo completo de teste
 
-Estamos dizendo ao Marketplace para avisar o Receiver sempre que houver eventos da loja `store-1`.
+### 1️⃣ Cadastrar um webhook
 
 ```bash
 curl -X POST http://localhost:8080/webhooks \
   -H "Content-Type: application/json" \
-  -d '{"storeIds":["store-1"],"callbackUrl":"http://receiver:8081/events"}'
+  -d '{"storeIds":["store-1"],"callbackUrl":"http://receiver:8081/webhook/events"}'
 ```
+
+Esse webhook diz ao Marketplace para onde enviar os eventos da loja `store-1`.
 
 ---
 
@@ -93,106 +70,139 @@ curl -X POST http://localhost:8080/orders \
   -d '{"storeId":"store-1"}'
 ```
 
-Guarde o **`id`** retornado — vamos usar no próximo passo.
+Resposta esperada:
+
+```json
+{
+  "id": "ID_DO_PEDIDO",
+  "storeId": "store-1",
+  "status": "CREATED",
+  "createdAt": "2026-..."
+}
+```
+
+Guarde o **id** retornado.
 
 ---
 
-### 3️⃣ Atualizar o status do pedido para **PAID**
-
-Aqui usamos **PATCH**, porque estamos alterando apenas um campo do pedido (o status).
+### 3️⃣ Atualizar o status do pedido
 
 ```bash
-curl -X PATCH http://localhost:8080/orders/{ORDER_ID}/status \
+curl -X PATCH http://localhost:8080/orders/ID_DO_PEDIDO/status \
   -H "Content-Type: application/json" \
   -d '{"status":"PAID"}'
 ```
 
-Substitua `{ORDER_ID}` pelo ID real retornado na criação do pedido.
+Essa ação dispara um **webhook** para o Receiver.
 
 ---
 
-### 📩 O que acontece agora?
-
-O Marketplace envia eventos para o Receiver, como por exemplo:
-
-- `order.created`  
-- `order.paid`
-
-Esses eventos são recebidos e armazenados pelo **receiver-api**.
-
----
-
-## 🔎 Consultando os eventos recebidos
-
-### Todos os eventos
+### 4️⃣ Consultar os eventos recebidos
 
 ```bash
 curl http://localhost:8081/events
 ```
 
----
+Resposta esperada:
 
-### Eventos por loja
-
-```bash
-curl http://localhost:8081/events/store/store-1
+```json
+[
+  {
+    "id": "...",
+    "event": "order.created",
+    "orderId": "...",
+    "storeId": "store-1",
+    "receivedAt": "...",
+    "orderSnapshot": {
+      "id": "...",
+      "storeId": "store-1",
+      "status": "CREATED",
+      "createdAt": "..."
+    }
+  },
+  {
+    "id": "...",
+    "event": "order.paid",
+    "orderId": "...",
+    "storeId": "store-1",
+    "receivedAt": "...",
+    "orderSnapshot": {
+      "id": "...",
+      "storeId": "store-1",
+      "status": "PAID",
+      "createdAt": "..."
+    }
+  }
+]
 ```
 
 ---
 
-### Eventos por pedido
+## 📦 Eventos enviados pelo Marketplace
 
-```bash
-curl http://localhost:8081/events/order/{ORDER_ID}
+| Evento | Quando ocorre |
+|--------|---------------|
+| `order.created` | Quando um pedido é criado |
+| `order.paid` | Quando o status muda para **PAID** |
+
+Cada evento contém um **snapshot do pedido** no momento do disparo.
+
+---
+
+## 📬 Endpoint de Webhook do Receiver
+
+O Receiver expõe o endpoint que recebe os webhooks:
+
+```
+POST /webhook/events
+```
+
+Os eventos recebidos podem ser consultados em:
+
+```
+GET /events
 ```
 
 ---
 
-## 🧪 Rodando os testes
+## 🛠 Tecnologias utilizadas
 
-Entre na pasta do **receiver-api**:
-
-```bash
-cd receiver-api
-mvn test
-```
-
-Os testes cobrem:
-
-- Processamento de eventos  
-- Controller de recebimento de webhook  
-- Controller de consulta de eventos  
+- Java 17  
+- Spring Boot  
+- Spring WebFlux (Marketplace)  
+- Spring MVC (Receiver)  
+- Spring Data MongoDB  
+- Docker + Docker Compose  
 
 ---
 
-## 🛑 Parar os containers
+## 🧪 Dicas de Debug
+
+Ver logs do Marketplace:
 
 ```bash
-docker compose down
+docker logs rafael-challenge-marketplace-1
 ```
 
-Se quiser remover também os volumes do banco:
+Ver logs do Receiver:
 
 ```bash
-docker compose down -v
+docker logs rafael-challenge-receiver-1
 ```
+
+Se os eventos não aparecerem:
+
+- Verifique se o webhook foi cadastrado com  
+  `http://receiver:8081/webhook/events`  
+- Confirme se os containers estão rodando (`docker ps`)  
+- Veja se o status do pedido realmente foi alterado para **PAID**
 
 ---
 
-## 📌 Decisões de implementação
+## ✅ Status do Projeto
 
-Alguns pontos importantes da solução:
-
-- Cada evento salvo no Receiver contém um **snapshot do pedido** no momento do recebimento  
-- O Receiver **não acessa o banco do Marketplace**, apenas consome a API dele  
-- A comunicação entre serviços é desacoplada via **webhook HTTP**  
-- Os testes unitários garantem a regra de negócio sem depender de subir a aplicação inteira  
-
----
-
-## ✅ Status do projeto
-
-✔ Fluxo completo funcionando  
-✔ Webhooks enviados e recebidos  
-✔ Consulta de eventos disponível via API  
-✔ Testes unitários passando  
+✔ Criação de pedidos  
+✔ Atualização de status  
+✔ Disparo de webhooks  
+✔ Persistência de eventos no Receiver  
+✔ Consulta de eventos via API  
