@@ -58,7 +58,9 @@ curl -X POST http://localhost:8080/webhooks \
   -d '{"storeIds":["store-1"],"callbackUrl":"http://receiver:8081/webhook/events"}'
 ```
 
-Esse webhook diz ao Marketplace para onde enviar os eventos da loja `store-1`.
+⚠️ **Importante:** a URL do callback precisa ser exatamente  
+`http://receiver:8081/webhook/events`  
+porque a comunicação acontece **entre containers**, não via localhost.
 
 ---
 
@@ -136,6 +138,10 @@ Resposta esperada:
 ]
 ```
 
+Se a lista vier vazia, verifique:
+- Se o webhook foi cadastrado corretamente  
+- Se o status do pedido realmente foi alterado para **PAID**
+
 ---
 
 ## 📦 Eventos enviados pelo Marketplace
@@ -191,11 +197,9 @@ docker logs rafael-challenge-receiver-1
 ```
 
 Se os eventos não aparecerem:
-
-- Verifique se o webhook foi cadastrado com  
-  `http://receiver:8081/webhook/events`  
+- Confira se usou **/webhook/events** (e não `/events`) no cadastro do webhook  
 - Confirme se os containers estão rodando (`docker ps`)  
-- Veja se o status do pedido realmente foi alterado para **PAID**
+- Veja se o pedido foi realmente alterado para **PAID**
 
 ---
 
