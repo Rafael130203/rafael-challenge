@@ -127,7 +127,7 @@ Esses eventos são recebidos e armazenados pelo **receiver-api**.
 ### Todos os eventos
 
 ```bash
-curl http://localhost:8081/events | jq
+curl http://localhost:8081/events
 ```
 
 ---
@@ -135,7 +135,7 @@ curl http://localhost:8081/events | jq
 ### Eventos por loja
 
 ```bash
-curl http://localhost:8081/events/store/store-1 | jq
+curl http://localhost:8081/events/store/store-1
 ```
 
 ---
@@ -143,7 +143,7 @@ curl http://localhost:8081/events/store/store-1 | jq
 ### Eventos por pedido
 
 ```bash
-curl http://localhost:8081/events/order/{ORDER_ID} | jq
+curl http://localhost:8081/events/order/{ORDER_ID}
 ```
 
 ---
@@ -183,10 +183,10 @@ docker compose down -v
 
 Alguns pontos importantes da solução:
 
-- Cada evento salvo no Receiver contém um **snapshot do pedido** no momento do recebimento;  
-- O Receiver **não acessa o banco do Marketplace**, apenas consome a API dele; 
-- A comunicação entre serviços é desacoplada via **webhook HTTP**;
-- Os testes unitários garantem a regra de negócio sem depender de subir a aplicação inteira;  
+- Cada evento salvo no Receiver contém um **snapshot do pedido** no momento do recebimento  
+- O Receiver **não acessa o banco do Marketplace**, apenas consome a API dele  
+- A comunicação entre serviços é desacoplada via **webhook HTTP**  
+- Os testes unitários garantem a regra de negócio sem depender de subir a aplicação inteira  
 
 ---
 
